@@ -3,6 +3,9 @@ const { Queue, Worker } = require("bullmq");
 const Redis = require("ioredis");
 const router = express.Router();
 
+const path = require("path");
+const { spawn } = require("child_process");
+
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || "127.0.0.1",
   port: process.env.REDIS_PORT || 6379,
@@ -21,36 +24,48 @@ const worker = new Worker(
   async (job) => {
     console.log(`⚙️ Starting Job ID: ${job.id}`);
 
-    const steps = [
-      { message: "📥 video received", delay: 3000 },
-      { message: "📋 verify video meta data", delay: 3000 },
-      { message: "🎥 process video", delay: 3000 },
-      { message: "💾 saving new video", delay: 3000 },
-      {
-        message: "📡 sending API notice that video processing is completed",
-        delay: 3000,
-      },
-    ];
+    // Spawn a child process to run the microservice
+    const child = spawn("node", ["index.js"], {
+      cwd: path.join(process.env.PATH_TO_TEST_JOB),
+      stdio: ["pipe", "pipe", "pipe"], // Make sure to capture stdout and stderr
+    });
 
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      console.log(step.message);
+    // Keep track of progress
+    let progress = 0;
+    const totalSteps = 5; // Number of steps in your microservice
 
-      // Log progress to BullMQ
-      await job.updateProgress(Math.floor(((i + 1) / steps.length) * 100));
-      await job.log(step.message);
+    // Capture the stdout stream (Output from the microservice)
+    child.stdout.on("data", async (data) => {
+      const message = data.toString().trim();
+      console.log(`Microservice Output: ${message}`);
 
-      // Delay between steps
-      await new Promise((resolve) => setTimeout(resolve, step.delay));
-    }
+      if (message) {
+        progress += 1;
+        await job.updateProgress((progress / totalSteps) * 100); // Update progress in BullMQ
+        await job.log(message); // Log each step to BullMQ
+      }
+    });
 
-    console.log(`✅ Completed Job ID: ${job.id}`);
-    return { success: true };
+    // Capture the stderr stream (Errors from the microservice)
+    child.stderr.on("data", (data) => {
+      console.error(`Microservice Error: ${data}`);
+    });
+
+    // Capture the 'close' event when the process finishes
+    return new Promise((resolve, reject) => {
+      child.on("close", (code) => {
+        console.log(`Microservice exited with code ${code}`);
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          reject(new Error(`Microservice failed with code ${code}`));
+        }
+      });
+    });
   },
   {
     connection: redisConnection,
-    // concurrency: 1, // This ensures jobs are processed one at a time
-    concurrency: 2, // This ensures jobs are processed one at a time
+    concurrency: 2,
   }
 );
 
