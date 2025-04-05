@@ -42,12 +42,18 @@ REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 PORT=8003
 APP_NAME=KyberVisionJobQueuer03
-PATH_TO_TEST_JOB=/Users/nick/Documents/KyberVisionTestJob03/
+PATH_TO_TEST_JOB_SERVICE=/Users/nick/Documents/KyberVisionTestJob03/
 ```
 
 ---
 
 ## Redis Commands (Mac & Ubuntu)
+
+### Delete queue from terminal (Mac)
+
+- Delete All Data: `redis-cli FLUSHALL`
+- Delete Specific Database: `redis-cli -n 0 FLUSHDB`
+- Delete Specific Queue: `redis-cli --raw keys "*KyberVisionVideoUploader03*" | xargs redis-cli del`
 
 ### 📌 **Starting Redis in the Background**
 
@@ -164,6 +170,22 @@ curl -X POST http://localhost:8003/test-jobs/add
 - `ioredis` - For connecting to Redis.
 
 ---
+
+## Understanding the code for child process
+
+```js
+const child = spawn("node", ["index.js"], {
+  cwd: path.join(process.env.PATH_TO_TEST_JOB_SERVICE),
+  stdio: ["pipe", "pipe", "pipe"], // Make sure to capture stdout and stderr
+});
+```
+
+It is an array of three elements: [stdin, stdout, stderr].
+
+- "pipe": This allows the parent process to directly communicate with the child process via streams. By using "pipe", you are telling Node.js:
+  - "pipe" for stdin: The parent process can send data to the child process.
+  - "pipe" for stdout: The parent process can read the standard output of the child process.
+  - "pipe" for stderr: The parent process can read the standard error output of the child process.
 
 ## License
 

@@ -26,7 +26,7 @@ const worker = new Worker(
 
     // Spawn a child process to run the microservice
     const child = spawn("node", ["index.js"], {
-      cwd: path.join(process.env.PATH_TO_TEST_JOB),
+      cwd: path.join(process.env.PATH_TO_TEST_JOB_SERVICE),
       stdio: ["pipe", "pipe", "pipe"], // Make sure to capture stdout and stderr
     });
 
