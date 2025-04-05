@@ -23,6 +23,13 @@ const worker = new Worker(
 
     const filename = job.data.filename; // Extracting the filename from the job data
 
+    // const filename = job.data.filename;
+    if (!filename) {
+      console.error("❌ No filename provided in job data");
+      await job.log("❌ No filename provided in job data");
+      throw new Error("No filename provided in job data");
+    }
+
     const child = spawn("node", ["index.js", filename], {
       cwd: path.join(process.env.PATH_TO_KV_VIDEO_UPLOADER_SERVICE),
       stdio: ["pipe", "pipe", "pipe"], // 1) is for sending args in, 2) reading outputs, 3) reading errors
@@ -54,17 +61,21 @@ const worker = new Worker(
     });
 
     // Capture the stderr stream (Errors from the microservice)
-    child.stderr.on("data", (data) => {
-      console.error(`Microservice Error: ${data}`);
+    child.stderr.on("data", async (data) => {
+      const errorMessage = data.toString().trim();
+      console.error(`Microservice Error: ${errorMessage}`);
+      await job.log(`Microservice Error: ${errorMessage}`);
     });
     // Capture the 'close' event when the process finishes
     return new Promise((resolve, reject) => {
       child.on("close", (code) => {
-        console.log(`Microservice exited with code ${code}`);
         if (code === 0) {
           resolve({ success: true });
         } else {
-          reject(new Error(`Microservice failed with code ${code}`));
+          const errorMsg = `Microservice failed with code ${code}`;
+          console.error(errorMsg);
+          job.log(errorMsg);
+          reject(new Error(errorMsg));
         }
       });
     });

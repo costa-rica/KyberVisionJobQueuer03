@@ -153,6 +153,12 @@ http://localhost:8003/dashboard
 curl -X POST http://localhost:8003/test-jobs/add
 ```
 
+```bash
+curl -X POST http://localhost:8003/video-uploader/process \
+--header "Content-Type: application/json" \
+--data '{"filename": "Video01_trimmed.mp4"}'
+```
+
 ---
 
 ## Routes
