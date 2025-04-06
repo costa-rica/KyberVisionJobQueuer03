@@ -22,6 +22,9 @@ const worker = new Worker(
     console.log(`⚙️ Starting Job ID: ${job.id}`);
 
     const filename = job.data.filename; // Extracting the filename from the job data
+    const videoId = job.data.videoId;
+
+    console.log(`videoId: ${videoId}`);
 
     // const filename = job.data.filename;
     if (!filename) {
@@ -30,7 +33,7 @@ const worker = new Worker(
       throw new Error("No filename provided in job data");
     }
 
-    const child = spawn("node", ["index.js", filename], {
+    const child = spawn("node", ["index.js", filename, videoId], {
       cwd: path.join(process.env.PATH_TO_KV_VIDEO_UPLOADER_SERVICE),
       stdio: ["pipe", "pipe", "pipe"], // 1) is for sending args in, 2) reading outputs, 3) reading errors
     });
@@ -55,7 +58,8 @@ const worker = new Worker(
             await job.log(message);
           }
         } else if (message) {
-          await job.log(message);
+          console.log(`[KyberVisionVideoUploader03] ${message}`);
+          await job.log(`[KyberVisionVideoUploader03] ${message}`);
         }
       }
     });
