@@ -3,12 +3,7 @@ var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-
-// var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
-var testJobsRouter = require("./routes/testJobs");
-var videoUploaderRouter = require("./routes/videoUploader");
-var montageVideoProcessorRouter = require("./routes/montageVideoProcessor");
+const cors = require("cors");
 
 const { ExpressAdapter } = require("@bull-board/express");
 const { createBullBoard } = require("@bull-board/api");
@@ -16,8 +11,14 @@ const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
 const { Queue } = require("bullmq");
 const Redis = require("ioredis");
 
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/users");
+var testJobsRouter = require("./routes/testJobs");
+var videoUploaderRouter = require("./routes/videoUploader");
+var montageVideoProcessorRouter = require("./routes/montageVideoProcessor");
+
 var app = express();
-const cors = require("cors");
+
 app.use(cors());
 // Middleware
 app.use(logger("dev"));
