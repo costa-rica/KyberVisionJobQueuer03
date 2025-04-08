@@ -35,7 +35,16 @@ const worker = new Worker(
 
     const child = spawn("node", ["index.js", filename, videoId], {
       cwd: path.join(process.env.PATH_TO_KV_VIDEO_UPLOADER_SERVICE),
-      stdio: ["pipe", "pipe", "pipe"], // 1) is for sending args in, 2) reading outputs, 3) reading errors
+      stdio: ["pipe", "pipe", "pipe", "ipc"], // 1) is for sending args in, 2) reading outputs,
+      // 3) reading errors, 4) ipc - for sending messages between processes not cluttering up logs (used for progress updates)
+    });
+
+    child.on("message", async (message) => {
+      if (message.type === "progress") {
+        const progress = message.percent;
+        await job.updateProgress(progress);
+        console.log(`Updating progress to ${progress}%`);
+      }
     });
 
     child.stdout.on("data", async (data) => {
@@ -44,23 +53,24 @@ const worker = new Worker(
       for (let message of messages) {
         message = message.trim(); // Clean up any extra whitespace
 
-        if (message.startsWith("percent complete: ")) {
-          const progressStr = message
-            .substring("percent complete: ".length)
-            .trim();
-          const progress = Number(progressStr);
+        // if (message.startsWith("percent complete: ")) {
+        //   const progressStr = message
+        //     .substring("percent complete: ".length)
+        //     .trim();
+        //   const progress = Number(progressStr);
 
-          if (!isNaN(progress)) {
-            console.log(`Updating progress to ${progress}%`);
-            await job.updateProgress(progress);
-          } else {
-            console.log(`Invalid progress value: ${progressStr}`);
-            await job.log(message);
-          }
-        } else if (message) {
-          console.log(`[KyberVisionVideoUploader03] ${message}`);
-          await job.log(`[KyberVisionVideoUploader03] ${message}`);
-        }
+        //   if (!isNaN(progress)) {
+        //     // console.log(`Updating progress to ${progress}%`);
+
+        //     await job.updateProgress(progress);
+        //   } else {
+        //     console.log(`Invalid progress value: ${progressStr}`);
+        //     await job.log(message);
+        //   }
+        // } else if (message) {
+        console.log(`[KyberVisionVideoUploader03] ${message}`);
+        await job.log(`[KyberVisionVideoUploader03] ${message}`);
+        // }
       }
     });
 
