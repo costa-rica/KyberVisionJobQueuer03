@@ -43,7 +43,7 @@ const worker = new Worker(
       if (message.type === "progress") {
         const progress = message.percent;
         await job.updateProgress(progress);
-        console.log(`Updating progress to ${progress}%`);
+        // console.log(`Updating progress to ${progress}%`);
       }
     });
 
